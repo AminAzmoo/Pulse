@@ -1,0 +1,25 @@
+[Unit]
+Description=Pulse Agent
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/pulse-agent
+Restart=on-failure
+RestartSec=10s
+User=root
+Group=root
+
+# Hardening
+ProtectSystem=full
+PrivateTmp=yes
+NoNewPrivileges=yes
+ProtectKernelTunables=yes
+ProtectControlGroups=yes
+ProtectKernelModules=yes
+RestrictRealtime=yes
+
+[Install]
+WantedBy=multi-user.target
+

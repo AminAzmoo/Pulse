@@ -1,0 +1,236 @@
+const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost:8081/api/v1'
+
+interface ApiError {
+  error: string
+}
+
+class ApiClient {
+  private baseUrl: string
+  private token: string | null = null
+
+  constructor(baseUrl: string) {
+    this.baseUrl = baseUrl
+  }
+
+  setToken(token: string) {
+    this.token = token
+  }
+
+  async request<T>(endpoint: string, options?: RequestInit): Promise<T> {
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+      'X-Admin-Token': 'change-me-admin',
+      ...(this.token && { Authorization: `Bearer ${this.token}` }),
+      ...options?.headers,
+    }
+
+    const response = await fetch(`${this.baseUrl}${endpoint}`, {
+      ...options,
+      headers,
+    })
+
+    if (!response.ok) {
+      const error: ApiError = await response.json().catch(() => ({ error: 'Unknown error' }))
+      throw new Error(error.error || `HTTP ${response.status}`)
+    }
+
+    return response.json()
+  }
+
+  // Nodes
+  async getNodes() {
+    return this.request<any[]>('/nodes')
+  }
+
+  async createNode(data: {
+    name: string
+    ip: string
+    ssh_port?: number
+    role: string
+    username: string
+    password?: string
+    private_key?: string
+  }) {
+    return this.request('/nodes', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async deleteNode(id: string) {
+    return this.request(`/nodes/${id}`, { method: 'DELETE' })
+  }
+
+  async updateNode(id: string, data: any) {
+    return this.request(`/nodes/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async installAgent(id: string) {
+    return this.request(`/nodes/${id}/install-agent`, { method: 'POST' })
+  }
+
+  async getTaskStatus(taskId: string) {
+    return this.request(`/tasks/${taskId}`)
+  }
+
+  async getInstallCommand(nodeId: string) {
+    return this.request<{ command: string }>(`/nodes/${nodeId}/command`)
+  }
+
+  // Tunnels
+  async getTunnels() {
+    return this.request<any[]>('/tunnels')
+  }
+
+  async createTunnel(data: {
+    name: string
+    protocol: string
+    source_node_id: number
+    dest_node_id: number
+    source_port?: number
+    dest_port?: number
+  }) {
+    return this.request('/tunnels', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async deleteTunnel(id: string) {
+    return this.request(`/tunnels/${id}`, { method: 'DELETE' })
+  }
+
+  // Services
+  async getServices() {
+    return this.request<any[]>('/services')
+  }
+
+  async createService(data: {
+    name: string
+    protocol: string
+    node_id: number
+    listen_port: number
+    routing_mode: string
+    config?: any
+  }) {
+    return this.request('/services', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async deleteService(id: string) {
+    return this.request(`/services/${id}`, { method: 'DELETE' })
+  }
+
+  // Timeline
+  async getTimeline(params?: { resource_type?: string; resource_id?: string }) {
+    const query = new URLSearchParams(params as any).toString()
+    return this.request<any[]>(`/timeline${query ? `?${query}` : ''}`)
+  }
+
+  // Cleanup
+  async cleanupNode(data: {
+    node_id: number
+    mode: 'soft' | 'hard'
+    force?: boolean
+    confirm_text?: string
+  }) {
+    return this.request('/cleanup', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  // Settings
+  async getSettings() {
+    return this.request<Record<string, string>>('/settings')
+  }
+
+  async updateSettings(settings: Record<string, string>) {
+    return this.request('/settings', {
+      method: 'POST',
+      body: JSON.stringify(settings),
+    })
+  }
+
+  // General Settings
+  async getGeneralSettings() {
+    return this.request<{
+      systemName: string
+      adminEmail: string
+      publicUrl: string
+      environment: string
+    }>('/settings/general')
+  }
+
+  async updateGeneralSettings(data: {
+    systemName: string
+    adminEmail: string
+    publicUrl: string
+    environment: string
+  }) {
+    return this.request('/settings/general', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    })
+  }
+
+  // Network Resources (IPAM/PortAM/FQDNAM)
+  async getNetworkStats() {
+    return this.request<{
+      ipam: {
+        ipv4_cidr: string
+        ipv6_cidr: string
+        allocated_count: number
+        allocations: Array<{
+          ip: string
+          ipv6: string
+          type: string
+          resource_id: number
+          resource_name: string
+          allocated_at: string
+        }>
+      }
+      portam: {
+        min_port: number
+        max_port: number
+        total_range: number
+        used_count: number
+        available_count: number
+        allocations: Array<{
+          port: number
+          node_id: number
+          node_name: string
+          protocol: string
+          type: string
+          resource_id: number
+          resource_name: string
+        }>
+      }
+      fqdnam: {
+        base_domain: string
+        allocated_count: number
+        allocations: Array<{
+          fqdn: string
+          service_id: number
+          service_name: string
+          node_id: number
+          protocol: string
+          port: number
+          created_at: string
+        }>
+      }
+      summary: {
+        total_nodes: number
+        total_tunnels: number
+        total_services: number
+      }
+    }>('/network/stats')
+  }
+}
+
+export const api = new ApiClient(API_BASE_URL)

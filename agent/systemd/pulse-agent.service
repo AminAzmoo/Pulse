@@ -1,0 +1,27 @@
+[Unit]
+Description=Pulse Agent
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/pulse-agent
+Restart=on-failure
+RestartSec=10
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_INET AF_INET6
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE
+SystemCallFilter=@system-service
+Environment=PULSE_AGENT_SERVER_ADDR=
+Environment=PULSE_AGENT_BOOTSTRAP_URL=
+Environment=PULSE_AGENT_CERT_DIR=/var/lib/pulse-agent
+
+[Install]
+WantedBy=multi-user.target
+

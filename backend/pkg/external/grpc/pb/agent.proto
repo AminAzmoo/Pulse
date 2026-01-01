@@ -1,0 +1,65 @@
+syntax = "proto3";
+
+package pb;
+
+option go_package = "pulse/backend/pkg/external/grpc/pb";
+
+message AgentMessage {
+  oneof payload {
+    Heartbeat heartbeat = 1;
+    TaskResponse task_response = 2;
+    HostInfo host_info = 3;
+  }
+}
+
+message HostInfo {
+  string hostname = 1;
+  string os = 2;
+  string platform = 3;
+  string platform_family = 4;
+  string platform_version = 5;
+  string kernel_version = 6;
+  string arch = 7;
+  uint64 uptime_seconds = 8;
+  repeated string ip_addresses = 9;
+  string agent_version = 10;
+}
+
+message Heartbeat {
+  string status = 1;
+  SystemStats stats = 2;
+}
+
+message SystemStats {
+  double cpu_usage_percent = 1;
+  double memory_usage_percent = 2;
+  double disk_usage_percent = 3;
+}
+
+message TaskResponse {
+  string result = 1;
+}
+
+message ServerMessage {
+  oneof payload {
+    Task task = 1;
+  }
+}
+
+message Task {
+  string command = 1;
+}
+
+message RenewCertificateRequest {
+  string csr = 1;
+}
+
+message RenewCertificateResponse {
+  string certificate = 1;
+  string ca_certificate = 2;
+}
+
+service AgentService {
+  rpc Connect(stream AgentMessage) returns (stream ServerMessage) {};
+  rpc RenewCertificate(RenewCertificateRequest) returns (RenewCertificateResponse) {};
+}
