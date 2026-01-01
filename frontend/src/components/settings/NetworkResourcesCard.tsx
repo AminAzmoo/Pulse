@@ -1,12 +1,14 @@
 import { useQuery } from '@tanstack/react-query'
 import { Network, Server, Activity, Globe, Hash, Link } from 'lucide-react'
-import { api } from '../../lib/api'
+import { DEFAULT_STRINGS, POLLING_INTERVALS_MS } from '../../constants'
+import { useApi } from '../../hooks/useApi'
 
 export default function NetworkResourcesCard() {
+  const api = useApi()
   const { data, isLoading, error } = useQuery({
     queryKey: ['network-stats'],
     queryFn: () => api.getNetworkStats(),
-    refetchInterval: 30000,
+    refetchInterval: POLLING_INTERVALS_MS.networkStats,
   })
 
   if (isLoading) {
@@ -36,7 +38,12 @@ export default function NetworkResourcesCard() {
     )
   }
 
-  const portUsagePercent = (data.portam.used_count / data.portam.total_range) * 100
+  const portUsagePercent = data?.portam?.total_range
+    ? ((data.portam.used_count || 0) / data.portam.total_range) * 100
+    : 0
+  const ipamAllocations = data?.ipam?.allocations || []
+  const portAllocations = data?.portam?.allocations || []
+  const fqdnamAllocations = data?.fqdnam?.allocations || []
 
   return (
     <div className="card-shell">
@@ -49,17 +56,17 @@ export default function NetworkResourcesCard() {
       <div className="grid grid-cols-3 gap-4 mb-6">
         <div className="bg-gray-800/50 rounded-lg p-3 text-center">
           <Server size={18} className="text-blue-400 mx-auto mb-1" />
-          <div className="text-xl font-bold text-white">{data.summary.total_nodes}</div>
+          <div className="text-xl font-bold text-white">{data?.summary?.total_nodes ?? DEFAULT_STRINGS.unknown}</div>
           <div className="text-xs text-gray-400">Nodes</div>
         </div>
         <div className="bg-gray-800/50 rounded-lg p-3 text-center">
           <Activity size={18} className="text-green-400 mx-auto mb-1" />
-          <div className="text-xl font-bold text-white">{data.summary.total_tunnels}</div>
+          <div className="text-xl font-bold text-white">{data?.summary?.total_tunnels ?? DEFAULT_STRINGS.unknown}</div>
           <div className="text-xs text-gray-400">Tunnels</div>
         </div>
         <div className="bg-gray-800/50 rounded-lg p-3 text-center">
           <Globe size={18} className="text-purple-400 mx-auto mb-1" />
-          <div className="text-xl font-bold text-white">{data.summary.total_services}</div>
+          <div className="text-xl font-bold text-white">{data?.summary?.total_services ?? DEFAULT_STRINGS.unknown}</div>
           <div className="text-xs text-gray-400">Services</div>
         </div>
       </div>
@@ -73,19 +80,19 @@ export default function NetworkResourcesCard() {
         <div className="bg-gray-800/30 rounded-lg p-3 space-y-2">
           <div className="flex justify-between text-sm">
             <span className="text-gray-400">IPv4 Pool</span>
-            <span className="text-white font-mono">{data.ipam.ipv4_cidr}</span>
+            <span className="text-white font-mono">{data?.ipam?.ipv4_cidr || DEFAULT_STRINGS.unknown}</span>
           </div>
           <div className="flex justify-between text-sm">
             <span className="text-gray-400">IPv6 Pool</span>
-            <span className="text-white font-mono">{data.ipam.ipv6_cidr}</span>
+            <span className="text-white font-mono">{data?.ipam?.ipv6_cidr || DEFAULT_STRINGS.unknown}</span>
           </div>
           <div className="flex justify-between text-sm">
             <span className="text-gray-400">Allocated Subnets</span>
-            <span className="text-green-400 font-semibold">{data.ipam.allocated_count}</span>
+            <span className="text-green-400 font-semibold">{data?.ipam?.allocated_count ?? DEFAULT_STRINGS.unknown}</span>
           </div>
         </div>
 
-        {data.ipam.allocations.length > 0 && (
+        {ipamAllocations.length > 0 && (
           <div className="mt-3 max-h-32 overflow-y-auto">
             <table className="w-full text-xs">
               <thead className="text-gray-500">
@@ -95,10 +102,10 @@ export default function NetworkResourcesCard() {
                 </tr>
               </thead>
               <tbody className="text-gray-300">
-                {data.ipam.allocations.map((alloc, i) => (
+                {ipamAllocations.map((alloc, i) => (
                   <tr key={i} className="border-t border-gray-700/50">
-                    <td className="py-1 font-mono">{alloc.ip}</td>
-                    <td className="py-1">{alloc.resource_name}</td>
+                    <td className="py-1 font-mono">{alloc.ip || DEFAULT_STRINGS.unknown}</td>
+                    <td className="py-1">{alloc.resource_name || DEFAULT_STRINGS.unknown}</td>
                   </tr>
                 ))}
               </tbody>
@@ -116,14 +123,16 @@ export default function NetworkResourcesCard() {
         <div className="bg-gray-800/30 rounded-lg p-3 space-y-2">
           <div className="flex justify-between text-sm">
             <span className="text-gray-400">Port Range</span>
-            <span className="text-white font-mono">{data.portam.min_port} - {data.portam.max_port}</span>
+            <span className="text-white font-mono">
+              {data?.portam?.min_port ?? DEFAULT_STRINGS.unknown} - {data?.portam?.max_port ?? DEFAULT_STRINGS.unknown}
+            </span>
           </div>
           <div className="flex justify-between text-sm">
             <span className="text-gray-400">Used / Available</span>
             <span className="text-white">
-              <span className="text-yellow-400">{data.portam.used_count}</span>
+              <span className="text-yellow-400">{data?.portam?.used_count ?? DEFAULT_STRINGS.unknown}</span>
               {' / '}
-              <span className="text-green-400">{data.portam.available_count}</span>
+              <span className="text-green-400">{data?.portam?.available_count ?? DEFAULT_STRINGS.unknown}</span>
             </span>
           </div>
           {/* Progress bar */}
@@ -140,7 +149,7 @@ export default function NetworkResourcesCard() {
           </div>
         </div>
 
-        {data.portam.allocations.length > 0 && (
+        {portAllocations.length > 0 && (
           <div className="mt-3 max-h-40 overflow-y-auto">
             <table className="w-full text-xs">
               <thead className="text-gray-500 sticky top-0 bg-gray-900">
@@ -152,18 +161,18 @@ export default function NetworkResourcesCard() {
                 </tr>
               </thead>
               <tbody className="text-gray-300">
-                {data.portam.allocations.map((alloc, i) => (
+                {portAllocations.map((alloc, i) => (
                   <tr key={i} className="border-t border-gray-700/50">
-                    <td className="py-1 font-mono text-blue-400">{alloc.port}</td>
-                    <td className="py-1">{alloc.node_name || `Node #${alloc.node_id}`}</td>
+                    <td className="py-1 font-mono text-blue-400">{alloc.port ?? DEFAULT_STRINGS.unknown}</td>
+                    <td className="py-1">{alloc.node_name || (alloc.node_id ? `Node #${alloc.node_id}` : DEFAULT_STRINGS.unknown)}</td>
                     <td className="py-1">
                       <span className={`px-1.5 py-0.5 rounded text-xs ${
                         alloc.type === 'tunnel' ? 'bg-green-500/20 text-green-400' : 'bg-purple-500/20 text-purple-400'
                       }`}>
-                        {alloc.type}
+                        {alloc.type || DEFAULT_STRINGS.unknown}
                       </span>
                     </td>
-                    <td className="py-1">{alloc.resource_name}</td>
+                    <td className="py-1">{alloc.resource_name || DEFAULT_STRINGS.unknown}</td>
                   </tr>
                 ))}
               </tbody>
@@ -173,7 +182,7 @@ export default function NetworkResourcesCard() {
       </div>
 
       {/* FQDNAM Section */}
-      {data.fqdnam && (
+      {data?.fqdnam && (
         <div className="mt-6">
           <h4 className="text-sm font-medium text-gray-300 mb-3 flex items-center gap-2">
             <Link size={14} />
@@ -182,15 +191,15 @@ export default function NetworkResourcesCard() {
           <div className="bg-gray-800/30 rounded-lg p-3 space-y-2">
             <div className="flex justify-between text-sm">
               <span className="text-gray-400">Base Domain</span>
-              <span className="text-white font-mono">{data.fqdnam.base_domain}</span>
+              <span className="text-white font-mono">{data?.fqdnam?.base_domain || DEFAULT_STRINGS.unknown}</span>
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-gray-400">Allocated FQDNs</span>
-              <span className="text-green-400 font-semibold">{data.fqdnam.allocated_count}</span>
+              <span className="text-green-400 font-semibold">{data?.fqdnam?.allocated_count ?? DEFAULT_STRINGS.unknown}</span>
             </div>
           </div>
 
-          {data.fqdnam.allocations.length > 0 && (
+          {fqdnamAllocations.length > 0 && (
             <div className="mt-3 max-h-40 overflow-y-auto">
               <table className="w-full text-xs">
                 <thead className="text-gray-500 sticky top-0 bg-gray-900">
@@ -201,19 +210,19 @@ export default function NetworkResourcesCard() {
                   </tr>
                 </thead>
                 <tbody className="text-gray-300">
-                  {data.fqdnam.allocations.map((alloc, i) => (
-                    <tr key={i} className="border-t border-gray-700/50">
-                      <td className="py-1 font-mono text-cyan-400">{alloc.fqdn}</td>
-                      <td className="py-1">{alloc.service_name}</td>
-                      <td className="py-1 font-mono">{alloc.port}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+                {fqdnamAllocations.map((alloc, i) => (
+                  <tr key={i} className="border-t border-gray-700/50">
+                    <td className="py-1 font-mono text-cyan-400">{alloc.fqdn || DEFAULT_STRINGS.unknown}</td>
+                    <td className="py-1">{alloc.service_name || DEFAULT_STRINGS.unknown}</td>
+                    <td className="py-1 font-mono">{alloc.port ?? DEFAULT_STRINGS.unknown}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
 
-          {data.fqdnam.allocations.length === 0 && (
+          {fqdnamAllocations.length === 0 && (
             <p className="text-xs text-gray-500 mt-2">
               No FQDNs allocated yet. FQDNs are auto-generated when services are created.
             </p>

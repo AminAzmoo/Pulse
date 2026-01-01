@@ -150,6 +150,27 @@
     align-items: center;
     gap: 1rem;
   }
+  .header-status {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    text-align: right;
+    max-width: 18rem;
+  }
+  .header-status-state {
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+  }
+  .header-status-meta {
+    font-size: 0.7rem;
+    color: #9CA3AF;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    justify-content: flex-end;
+  }
   .header-icon-btn {
     border-radius: 0.5rem;
     padding: 0.5rem;
@@ -223,6 +244,18 @@
   }
   .nav-link-inactive:hover {
     color: #E5E7EB;
+  }
+
+  .backend-empty-state {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 4rem 1.5rem;
+  }
+  .backend-empty-card {
+    max-width: 32rem;
+    width: 100%;
+    text-align: center;
   }
 
   /* PageShell */
@@ -1515,6 +1548,11 @@
     background-color: #1F2937;
     color: #D1D5DB;
   }
+  .timeline-date-range {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
 
   .timeline-events-list {
     display: flex;
@@ -1563,6 +1601,15 @@
     color: #4B5563;
     padding-top: 0.5rem;
     border-top: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+  .settings-readonly-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.35rem 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    font-size: 0.875rem;
   }
   
   /* Device Modal Specific Styles */
@@ -1724,4 +1771,3 @@
     opacity: 0.5;
   }
 }
-

@@ -113,7 +113,9 @@ export default function TunnelCard({
               <div className="entity-info-row">
                 <Activity size={14} className="text-muted icon-mr-1" />
                 <span className="entity-info-label">Latency:</span>
-                <span className="text-neon">{tunnel.latency}ms</span>
+                <span className="text-neon">
+                  {typeof tunnel.latency === 'number' ? `${tunnel.latency}ms` : tunnel.latency}
+                </span>
               </div>
             )}
           </div>

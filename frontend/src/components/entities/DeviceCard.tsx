@@ -105,9 +105,15 @@ function InfoRow({ label, value }: { label: string; value?: string }) {
   )
 }
 
-function ResourceBar({ label, value, icon: Icon }: { label: string; value: number; icon: LucideIcon }) {
-  // Color coding based on load
-  const loadColor = value > 90 ? 'bg-red-500' : value > 70 ? 'bg-yellow-500' : 'bg-green-500';
+function ResourceBar({ label, value, icon: Icon }: { label: string; value: number | string; icon: LucideIcon }) {
+  const numericValue = typeof value === 'number' ? value : null
+  const loadColor = numericValue !== null
+    ? numericValue > 90
+      ? 'bg-red-500'
+      : numericValue > 70
+        ? 'bg-yellow-500'
+        : 'bg-green-500'
+    : 'bg-gray-600'
   
   return (
     <div className="w-full">
@@ -116,12 +122,14 @@ function ResourceBar({ label, value, icon: Icon }: { label: string; value: numbe
           <Icon size={12} />
           <span>{label}</span>
         </div>
-        <span className="text-xs font-mono">{value}%</span>
+        <span className="text-xs font-mono">
+          {numericValue !== null ? `${numericValue}%` : value}
+        </span>
       </div>
       <div className="h-1.5 w-full bg-gray-700/50 rounded-full overflow-hidden">
         <div
           className={cn("h-full transition-all duration-500 ease-out", loadColor)}
-          style={{ width: `${value}%` }}
+          style={{ width: `${numericValue ?? 0}%` }}
         />
       </div>
     </div>

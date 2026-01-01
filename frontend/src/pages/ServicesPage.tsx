@@ -5,8 +5,9 @@ import ServiceCard from '../components/entities/ServiceCard'
 import ServicesTable from '../components/entities/ServicesTable'
 import ViewToggle from '../components/common/ViewToggle'
 import AddServiceModal from '../components/services/AddServiceModal'
-import { api } from '../lib/api'
 import { Service, ProcessStep } from '../types'
+import { DEFAULT_STRINGS, POLLING_INTERVALS_MS, PROCESS_TIMING_MS } from '../constants'
+import { useApi } from '../hooks/useApi'
 
 const EDIT_STEPS: ProcessStep[] = [
   { id: '1', label: 'Queued', state: 'pending', icon: 'ListStart' },
@@ -34,6 +35,7 @@ interface ActiveProcess {
 
 export default function ServicesPage() {
   const queryClient = useQueryClient()
+  const api = useApi()
   const [view, setView] = useState<'card' | 'table'>('card')
   const [processes, setProcesses] = useState<Record<string, ActiveProcess>>({})
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -44,42 +46,65 @@ export default function ServicesPage() {
   const { data: rawServices = [], refetch: refetchServices } = useQuery({
     queryKey: ['services'],
     queryFn: () => api.getServices(),
+    refetchInterval: POLLING_INTERVALS_MS.services,
   })
 
   const { data: rawNodes = [] } = useQuery({
     queryKey: ['nodes'],
     queryFn: () => api.getNodes(),
+    refetchInterval: POLLING_INTERVALS_MS.nodes,
   })
 
   const { data: rawTunnels = [] } = useQuery({
     queryKey: ['tunnels'],
     queryFn: () => api.getTunnels(),
+    refetchInterval: POLLING_INTERVALS_MS.tunnels,
   })
 
-  const nodes = rawNodes.map((node: any) => ({
-    id: String(node.id),
-    name: node.name,
-    role: node.role,
-    ip: node.ip,
-  }))
+  const nodes = rawNodes
+    .map((node: any) => {
+      const role = typeof node.role === 'string' ? node.role.toLowerCase() : ''
+      if (role !== 'entry' && role !== 'exit') return null
+      return {
+        id: String(node.id),
+        name: node.name || DEFAULT_STRINGS.unknown,
+        role,
+        ip: node.ip,
+      }
+    })
+    .filter(Boolean) as Array<{ id: string; name: string; role: 'entry' | 'exit'; ip: string }>
 
   const tunnels = rawTunnels.map((t: any) => ({
     id: String(t.id),
-    name: t.name,
+    name: t.name || DEFAULT_STRINGS.unknown,
   }))
 
-  const services: Service[] = rawServices.map((s: any) => ({
-    id: String(s.id),
-    name: s.name,
-    protocol: s.protocol.toUpperCase(),
-    entryNode: s.node?.name || 'Unknown',
-    exitNode: 'N/A',
-    users: 0,
-    traffic: '0 MB',
-    status: 'Ready',
-    lastAction: 'Active',
-    lastActionTime: new Date(s.updated_at).toLocaleString(),
-  }))
+  const services: Service[] = rawServices.map((s: any) => {
+    const rawStatus = typeof s.status === 'string' ? s.status.toLowerCase() : ''
+    const status =
+      rawStatus === 'ready'
+        ? 'Ready'
+        : rawStatus === 'error'
+          ? 'Error'
+          : rawStatus === 'configuring'
+            ? 'Configuring'
+            : rawStatus === 'queued'
+              ? 'Queued'
+              : 'Unknown'
+
+    return {
+      id: String(s.id),
+      name: s.name || DEFAULT_STRINGS.unknown,
+      protocol: s.protocol ? s.protocol.toUpperCase() : 'Unknown',
+      entryNode: s.node?.name || DEFAULT_STRINGS.unknown,
+      exitNode: s.exit_node?.name || DEFAULT_STRINGS.notAvailable,
+      users: s.users ?? DEFAULT_STRINGS.notAvailable,
+      traffic: s.traffic ?? DEFAULT_STRINGS.notAvailable,
+      status,
+      lastAction: s.last_action || DEFAULT_STRINGS.notAvailable,
+      lastActionTime: s.updated_at ? new Date(s.updated_at).toLocaleString() : DEFAULT_STRINGS.unknown,
+    }
+  })
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => api.deleteService(id),
@@ -132,9 +157,9 @@ export default function ServicesPage() {
             delete next[serviceId]
             return next
           })
-        }, 1000)
+        }, PROCESS_TIMING_MS.completionDelay)
       }
-    }, 1500)
+    }, PROCESS_TIMING_MS.stepInterval)
 
     intervalsRef.current[serviceId] = interval
   }, [])
@@ -205,7 +230,7 @@ export default function ServicesPage() {
           </select>
           <input
             type="text"
-            placeholder="Search services..."
+            placeholder="Search services"
             className="filter-input"
           />
         </div>

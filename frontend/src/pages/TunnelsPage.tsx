@@ -5,8 +5,9 @@ import TunnelCard from '../components/entities/TunnelCard'
 import TunnelsTable from '../components/entities/TunnelsTable'
 import ViewToggle from '../components/common/ViewToggle'
 import AddTunnelModal from '../components/tunnels/AddTunnelModal'
-import { api } from '../lib/api'
 import { Tunnel, ProcessStep } from '../types'
+import { DEFAULT_STRINGS, POLLING_INTERVALS_MS, PROCESS_TIMING_MS } from '../constants'
+import { useApi } from '../hooks/useApi'
 
 const EDIT_STEPS: ProcessStep[] = [
   { id: '1', label: 'Queued', state: 'pending', icon: 'ListStart' },
@@ -33,6 +34,7 @@ interface ActiveProcess {
 
 export default function TunnelsPage() {
   const queryClient = useQueryClient()
+  const api = useApi()
   const [view, setView] = useState<'card' | 'table'>('card')
   const [processes, setProcesses] = useState<Record<string, ActiveProcess>>({})
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -43,29 +45,43 @@ export default function TunnelsPage() {
   const { data: rawTunnels = [], refetch: refetchTunnels } = useQuery({
     queryKey: ['tunnels'],
     queryFn: () => api.getTunnels(),
+    refetchInterval: POLLING_INTERVALS_MS.tunnels,
   })
 
   const { data: rawNodes = [] } = useQuery({
     queryKey: ['nodes'],
     queryFn: () => api.getNodes(),
+    refetchInterval: POLLING_INTERVALS_MS.nodes,
   })
 
-  const nodes = rawNodes.map((node: any) => ({
-    id: String(node.id),
-    name: node.name,
-    role: node.role,
-    ip: node.ip,
-  }))
+  const nodes = rawNodes
+    .map((node: any) => {
+      const role = typeof node.role === 'string' ? node.role.toLowerCase() : ''
+      if (role !== 'entry' && role !== 'exit') return null
+      return {
+        id: String(node.id),
+        name: node.name || DEFAULT_STRINGS.unknown,
+        role,
+        ip: node.ip,
+      }
+    })
+    .filter(Boolean) as Array<{ id: string; name: string; role: 'entry' | 'exit'; ip: string }>
 
   const tunnels: Tunnel[] = rawTunnels.map((t: any) => ({
     id: String(t.id),
-    name: t.name,
-    path: `${t.source_node?.name || 'Unknown'} → ${t.dest_node?.name || 'Unknown'}`,
-    type: t.type === 'chain' ? 'Multi-hop' : 'Single-hop',
-    status: t.status === 'active' ? 'Live' : 'Configuring',
-    latency: 0,
-    lastAction: 'Active',
-    lastActionTime: new Date(t.updated_at).toLocaleString(),
+    name: t.name || DEFAULT_STRINGS.unknown,
+    path: `${t.source_node?.name || DEFAULT_STRINGS.unknown} → ${t.dest_node?.name || DEFAULT_STRINGS.unknown}`,
+    type: t.type ? (t.type === 'chain' ? 'Multi-hop' : 'Single-hop') : 'Unknown',
+    status: t.status
+      ? t.status === 'active'
+        ? 'Live'
+        : t.status === 'error'
+          ? 'Error'
+          : 'Configuring'
+      : 'Unknown',
+    latency: t.latency ?? DEFAULT_STRINGS.notAvailable,
+    lastAction: t.last_action || DEFAULT_STRINGS.notAvailable,
+    lastActionTime: t.updated_at ? new Date(t.updated_at).toLocaleString() : DEFAULT_STRINGS.unknown,
   }))
 
   const deleteMutation = useMutation({
@@ -119,9 +135,9 @@ export default function TunnelsPage() {
             delete next[tunnelId]
             return next
           })
-        }, 1000)
+        }, PROCESS_TIMING_MS.completionDelay)
       }
-    }, 1500)
+    }, PROCESS_TIMING_MS.stepInterval)
 
     intervalsRef.current[tunnelId] = interval
   }, [])
@@ -190,7 +206,7 @@ export default function TunnelsPage() {
           </select>
           <input
             type="text"
-            placeholder="Search tunnels..."
+            placeholder="Search tunnels"
             className="filter-input"
           />
         </div>

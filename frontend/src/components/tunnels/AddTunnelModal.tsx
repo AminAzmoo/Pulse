@@ -1,6 +1,6 @@
 import { useState, FormEvent } from 'react'
 import { X, AlertCircle } from 'lucide-react'
-import { api } from '../../lib/api'
+import { useApi } from '../../hooks/useApi'
 
 interface Node {
   id: string
@@ -17,6 +17,7 @@ interface AddTunnelModalProps {
 }
 
 export default function AddTunnelModal({ isOpen, onClose, onSuccess, nodes }: AddTunnelModalProps) {
+  const api = useApi()
   const [name, setName] = useState('')
   const [entryNodeId, setEntryNodeId] = useState('')
   const [exitNodeId, setExitNodeId] = useState('')
@@ -114,7 +115,7 @@ export default function AddTunnelModal({ isOpen, onClose, onSuccess, nodes }: Ad
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 disabled={isSubmitting}
-                placeholder="Tehran-Frankfurt-WG"
+                placeholder="Enter tunnel name"
                 className={`settings-input ${errors.name ? 'border-red-500' : ''}`}
               />
               {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
@@ -205,7 +206,7 @@ export default function AddTunnelModal({ isOpen, onClose, onSuccess, nodes }: Ad
               onChange={(e) => setNotes(e.target.value)}
               disabled={isSubmitting}
               rows={3}
-              placeholder="Additional configuration notes..."
+              placeholder="Add configuration notes"
               className="settings-input"
             />
           </div>

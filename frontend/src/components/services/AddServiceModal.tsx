@@ -1,6 +1,6 @@
 import { useState, FormEvent } from 'react'
 import { X, AlertCircle } from 'lucide-react'
-import { api } from '../../lib/api'
+import { useApi } from '../../hooks/useApi'
 
 interface Node {
   id: string
@@ -23,6 +23,7 @@ interface AddServiceModalProps {
 }
 
 export default function AddServiceModal({ isOpen, onClose, onSuccess, nodes, tunnels }: AddServiceModalProps) {
+  const api = useApi()
   const [name, setName] = useState('')
   const [protocol, setProtocol] = useState<'vless-reality' | 'hysteria2' | 'wireguard' | 'openconnect' | 'l2tp-ipsec'>('vless-reality')
   const [bindType, setBindType] = useState<'direct-node' | 'via-tunnel'>('direct-node')
@@ -84,6 +85,7 @@ export default function AddServiceModal({ isOpen, onClose, onSuccess, nodes, tun
           notes: notes.trim() || undefined,
           entry_node_id: bindType === 'direct-node' ? parseInt(targetNodeId) : parseInt(entryNodeId),
           target_node_id: bindType === 'via-tunnel' ? parseInt(targetNodeId) : undefined,
+          tunnel_id: bindType === 'via-tunnel' ? parseInt(tunnelId) : undefined,
         },
       }
 
@@ -134,7 +136,7 @@ export default function AddServiceModal({ isOpen, onClose, onSuccess, nodes, tun
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 disabled={isSubmitting}
-                placeholder="VLESS-Reality-Tehran"
+                placeholder="Enter service name"
                 className={`settings-input ${errors.name ? 'border-red-500' : ''}`}
               />
               {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
@@ -305,13 +307,7 @@ export default function AddServiceModal({ isOpen, onClose, onSuccess, nodes, tun
               onChange={(e) => setClientConfigTemplate(e.target.value)}
               disabled={isSubmitting}
               rows={6}
-              placeholder={`[Interface]
-PrivateKey = {{PRIVATE_KEY}}
-Address = {{CLIENT_IP}}
-
-[Peer]
-PublicKey = {{SERVER_PUBLIC_KEY}}
-Endpoint = {{SERVER_IP}}:{{PORT}}`}
+              placeholder="Paste client config template"
               className={`settings-input font-mono text-xs ${errors.clientConfigTemplate ? 'border-red-500' : ''}`}
             />
             {errors.clientConfigTemplate && <p className="text-red-500 text-xs mt-1">{errors.clientConfigTemplate}</p>}
@@ -324,7 +320,7 @@ Endpoint = {{SERVER_IP}}:{{PORT}}`}
               onChange={(e) => setNotes(e.target.value)}
               disabled={isSubmitting}
               rows={3}
-              placeholder="Additional notes..."
+              placeholder="Add notes"
               className="settings-input"
             />
           </div>

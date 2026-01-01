@@ -1,6 +1,6 @@
 import { useState, FormEvent, useEffect } from 'react'
 import { X, AlertCircle } from 'lucide-react'
-import { api } from '../../lib/api'
+import { useApi } from '../../hooks/useApi'
 import { Device } from '../../types'
 
 interface DeviceModalProps {
@@ -11,6 +11,7 @@ interface DeviceModalProps {
 }
 
 export default function DeviceModal({ isOpen, onClose, onSuccess, initialData }: DeviceModalProps) {
+  const api = useApi()
   const [name, setName] = useState('')
   const [role, setRole] = useState<'entry' | 'exit'>('entry')
   const [ip, setIp] = useState('')
@@ -167,7 +168,7 @@ export default function DeviceModal({ isOpen, onClose, onSuccess, initialData }:
                 value={ip}
                 onChange={(e) => setIp(e.target.value)}
                 disabled={isSubmitting || isEditing}
-                placeholder="192.168.1.1"
+                placeholder="Enter IP address"
                 className={`settings-input ${errors.ip ? 'border-red-500' : ''} ${isEditing ? 'device-modal-ip-disabled' : ''}`}
               />
               {errors.ip && <p className="text-red-500 text-xs mt-1">{errors.ip}</p>}
@@ -256,7 +257,7 @@ export default function DeviceModal({ isOpen, onClose, onSuccess, initialData }:
                 onChange={(e) => setSshKey(e.target.value)}
                 disabled={isSubmitting}
                 rows={4}
-                placeholder={isEditing ? "Leave empty to keep current" : "-----BEGIN OPENSSH PRIVATE KEY-----"}
+                placeholder={isEditing ? "Leave empty to keep current" : "Paste SSH private key"}
                 className="device-modal-textarea"
               />
               {errors.sshKey && <p className="text-red-500 text-xs mt-1">{errors.sshKey}</p>}

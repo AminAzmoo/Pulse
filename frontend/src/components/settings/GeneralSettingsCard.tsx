@@ -3,7 +3,8 @@ import { useQuery, useMutation } from '@tanstack/react-query'
 import CardShell from '../common/CardShell'
 import { ProcessStep } from '../../types'
 import VerticalProcessTimeline from '../common/VerticalProcessTimeline'
-import { api } from '../../lib/api'
+import { useApi } from '../../hooks/useApi'
+import { DEFAULT_STRINGS, PROCESS_TIMING_MS } from '../../constants'
 
 const INITIAL_STEPS: ProcessStep[] = [
   { id: '1', label: 'Queued', state: 'pending' },
@@ -18,6 +19,7 @@ export default function GeneralSettingsCard() {
   const [isProcessing, setIsProcessing] = useState(false)
   const [lastUpdate, setLastUpdate] = useState<string | null>(null)
   const [showTimeline, setShowTimeline] = useState(false)
+  const api = useApi()
   const { data: settings } = useQuery({
     queryKey: ['generalSettings'],
     queryFn: () => api.getGeneralSettings(),
@@ -36,7 +38,7 @@ export default function GeneralSettingsCard() {
         systemName: settings.systemName || '',
         adminEmail: settings.adminEmail || '',
         publicUrl: settings.publicUrl || '',
-        environment: settings.environment || 'Production'
+        environment: settings.environment || 'Production',
       })
     }
   }, [settings])
@@ -51,7 +53,7 @@ export default function GeneralSettingsCard() {
   const updateMutation = useMutation({
     mutationFn: (data: typeof formData) => api.updateGeneralSettings(data),
     onSuccess: () => {
-      setLastUpdate('Just now')
+      setLastUpdate(new Date().toLocaleString())
     },
   })
 
@@ -89,7 +91,7 @@ export default function GeneralSettingsCard() {
                 setIsProcessing(false)
                 timeoutsRef.current = []
             }
-        }, 800) as unknown as number
+        }, PROCESS_TIMING_MS.settingsStepDelay) as unknown as number
         
         timeoutsRef.current.push(timeout)
     }
@@ -131,7 +133,7 @@ export default function GeneralSettingsCard() {
                         value={formData.publicUrl} 
                         onChange={(e) => setFormData(prev => ({ ...prev, publicUrl: e.target.value }))}
                         className="settings-input"
-                        placeholder="https://netly.yourdomain.com" 
+                        placeholder="Enter public URL" 
                     />
                     <p className="text-xs text-gray-500 mt-1">Used for agent installation script</p>
                 </div>
@@ -153,7 +155,7 @@ export default function GeneralSettingsCard() {
 
         <div className="mt-6 max-w-md flex flex-col gap-3">
             <span className="settings-last-update text-right">
-                {lastUpdate ? `Last updated: ${lastUpdate}` : 'Unsaved changes'}
+                {lastUpdate ? `Last updated: ${lastUpdate}` : DEFAULT_STRINGS.notAvailable}
             </span>
             <button 
                 onClick={handleSave} 

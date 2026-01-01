@@ -1,30 +1,34 @@
 import { useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import CardShell from '../common/CardShell'
+import { useApi } from '../../hooks/useApi'
+import { PROCESS_TIMING_MS } from '../../constants'
 
 export default function SystemCard() {
   const [isClearing, setIsClearing] = useState(false)
+  const [statusMessage, setStatusMessage] = useState<string | null>(null)
+  const [statusTone, setStatusTone] = useState<'success' | 'error' | null>(null)
+  const api = useApi()
 
   const clearLogsMutation = useMutation({
-    mutationFn: () => fetch('http://localhost:8081/api/v1/settings/logs', {
-      method: 'DELETE',
-      headers: {
-        'X-Admin-Token': 'change-me-admin'
-      }
-    }).then(res => res.json()),
+    mutationFn: () => api.clearLogs(),
     onSuccess: () => {
-      alert('Logs cleared successfully')
+      setStatusMessage('Logs cleared successfully')
+      setStatusTone('success')
     },
     onError: () => {
-      alert('Failed to clear logs')
-    }
+      setStatusMessage('Failed to clear logs')
+      setStatusTone('error')
+    },
   })
 
   const handleClearLogs = () => {
     if (confirm('Are you sure you want to clear all logs?')) {
       setIsClearing(true)
+      setStatusMessage(null)
+      setStatusTone(null)
       clearLogsMutation.mutate()
-      setTimeout(() => setIsClearing(false), 2000)
+      setTimeout(() => setIsClearing(false), PROCESS_TIMING_MS.completionDelay)
     }
   }
 
@@ -44,6 +48,11 @@ export default function SystemCard() {
               >
                 {isClearing ? 'Clearing...' : 'Clear Logs'}
               </button>
+              {statusMessage && (
+                <p className={`text-xs mt-2 ${statusTone === 'success' ? 'text-green-400' : 'text-red-400'}`}>
+                  {statusMessage}
+                </p>
+              )}
             </div>
           </div>
         </div>

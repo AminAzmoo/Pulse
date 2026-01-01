@@ -1,6 +1,6 @@
 import { useState, FormEvent } from 'react'
 import { X, AlertCircle } from 'lucide-react'
-import { api } from '../../lib/api'
+import { useApi } from '../../hooks/useApi'
 
 interface AddDeviceModalProps {
   isOpen: boolean
@@ -9,6 +9,7 @@ interface AddDeviceModalProps {
 }
 
 export default function AddDeviceModal({ isOpen, onClose, onSuccess }: AddDeviceModalProps) {
+  const api = useApi()
   const [name, setName] = useState('')
   const [role, setRole] = useState<'entry' | 'exit'>('entry')
   const [ip, setIp] = useState('')
@@ -18,8 +19,6 @@ export default function AddDeviceModal({ isOpen, onClose, onSuccess }: AddDevice
   const [password, setPassword] = useState('')
   const [sshKey, setSshKey] = useState('')
   const [subdomain, setSubdomain] = useState('')
-  const [enableCloudflareProxy, setEnableCloudflareProxy] = useState(false)
-  const [enableWarpOutbound, setEnableWarpOutbound] = useState(false)
   const [tags, setTags] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
@@ -92,8 +91,6 @@ export default function AddDeviceModal({ isOpen, onClose, onSuccess }: AddDevice
       setPassword('')
       setSshKey('')
       setSubdomain('')
-      setEnableCloudflareProxy(false)
-      setEnableWarpOutbound(false)
       setTags('')
       setErrors({})
       
@@ -142,8 +139,8 @@ export default function AddDeviceModal({ isOpen, onClose, onSuccess }: AddDevice
                 disabled={isSubmitting}
                 className="settings-input"
               >
-                <option value="entry">Entry Node – Iran / inbound</option>
-                <option value="exit">Exit Node – abroad / outbound</option>
+                <option value="entry">Entry Node – inbound</option>
+                <option value="exit">Exit Node – outbound</option>
               </select>
             </div>
 
@@ -154,7 +151,7 @@ export default function AddDeviceModal({ isOpen, onClose, onSuccess }: AddDevice
                 value={ip}
                 onChange={(e) => setIp(e.target.value)}
                 disabled={isSubmitting}
-                placeholder="192.168.1.1"
+                placeholder="Enter IP address"
                 className={`settings-input ${errors.ip ? 'border-red-500' : ''}`}
               />
               {errors.ip && <p className="text-red-500 text-xs mt-1">{errors.ip}</p>}
@@ -181,7 +178,7 @@ export default function AddDeviceModal({ isOpen, onClose, onSuccess }: AddDevice
                 value={subdomain}
                 onChange={(e) => setSubdomain(e.target.value)}
                 disabled={isSubmitting}
-                placeholder="node1"
+                placeholder="Enter subdomain"
                 className="settings-input"
               />
             </div>
@@ -249,36 +246,12 @@ export default function AddDeviceModal({ isOpen, onClose, onSuccess }: AddDevice
                 onChange={(e) => setSshKey(e.target.value)}
                 disabled={isSubmitting}
                 rows={4}
-                placeholder="-----BEGIN OPENSSH PRIVATE KEY-----"
+                placeholder="Paste SSH private key"
                 className={`settings-input font-mono text-xs ${errors.sshKey ? 'border-red-500' : ''}`}
               />
               {errors.sshKey && <p className="text-red-500 text-xs mt-1">{errors.sshKey}</p>}
             </div>
           )}
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-            <label className="flex items-center gap-3 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={enableCloudflareProxy}
-                onChange={(e) => setEnableCloudflareProxy(e.target.checked)}
-                disabled={isSubmitting}
-                className="w-4 h-4 accent-purple-600"
-              />
-              <span className="text-sm text-gray-300">Enable Cloudflare Proxy</span>
-            </label>
-
-            <label className="flex items-center gap-3 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={enableWarpOutbound}
-                onChange={(e) => setEnableWarpOutbound(e.target.checked)}
-                disabled={isSubmitting}
-                className="w-4 h-4 accent-purple-600"
-              />
-              <span className="text-sm text-gray-300">Enable WARP Outbound</span>
-            </label>
-          </div>
 
           <div className="mb-6">
             <label className="settings-label">Tags (comma-separated)</label>
@@ -287,7 +260,7 @@ export default function AddDeviceModal({ isOpen, onClose, onSuccess }: AddDevice
               value={tags}
               onChange={(e) => setTags(e.target.value)}
               disabled={isSubmitting}
-              placeholder="production, iran, high-priority"
+              placeholder="Add tags separated by commas"
               className="settings-input"
             />
           </div>

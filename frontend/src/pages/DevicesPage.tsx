@@ -8,8 +8,10 @@ import DeviceModal from '../components/devices/DeviceModal'
 import InstallCommandModal from '../components/InstallCommandModal'
 import Toast from '../components/common/Toast'
 import { useToast } from '../hooks/useToast'
-import { api } from '../lib/api'
 import { Device, ProcessStep, DeviceStatus } from '../types'
+import { DEFAULT_STRINGS, POLLING_INTERVALS_MS, PROCESS_TIMING_MS } from '../constants'
+import { useApi } from '../hooks/useApi'
+import { logger } from '../lib/logger'
 
 // Define steps templates
 const CLEANUP_STEPS: ProcessStep[] = [
@@ -55,6 +57,7 @@ interface ActiveProcess {
 export default function DevicesPage() {
   const queryClient = useQueryClient()
   const { toasts, showToast, removeToast } = useToast()
+  const api = useApi()
   const [view, setView] = useState<'card' | 'table'>('card')
   const [processes, setProcesses] = useState<Record<string, ActiveProcess>>({})
   const [agentStatuses, setAgentStatuses] = useState<Record<string, AgentStatus>>({})
@@ -67,6 +70,7 @@ export default function DevicesPage() {
   const { data: rawDevices = [], refetch: refetchDevices } = useQuery({
     queryKey: ['nodes'],
     queryFn: () => api.getNodes(),
+    refetchInterval: POLLING_INTERVALS_MS.nodes,
   })
 
   const devices: DeviceWithState[] = rawDevices.map((node: any) => {
@@ -75,7 +79,7 @@ export default function DevicesPage() {
     const backendStatus = node.status?.toLowerCase() || 'pending'
     const agentStatus = agentStatuses[nodeId] || process?.agentStatus || (backendStatus === 'online' ? 'online' : 'not_installed')
     
-    let deviceStatus: DeviceStatus = 'Offline'
+    let deviceStatus: DeviceStatus = 'Unknown'
     if (process?.type === 'install-agent') {
       deviceStatus = 'Installing'
     } else if (backendStatus === 'online') {
@@ -83,22 +87,39 @@ export default function DevicesPage() {
     } else if (backendStatus === 'installing') {
       deviceStatus = 'Installing'
     } else if (backendStatus === 'error') {
-      deviceStatus = 'Offline' // Map error to Offline since Error is not a valid DeviceStatus
+      deviceStatus = 'Offline'
     } else if (backendStatus === 'pending') {
       deviceStatus = 'Pending'
     }
     
+    const rawRole = typeof node.role === 'string' ? node.role.toLowerCase() : ''
+    const role =
+      rawRole === 'entry'
+        ? 'Entry'
+        : rawRole === 'exit'
+          ? 'Exit'
+          : rawRole === 'hybrid'
+            ? 'Hybrid'
+            : rawRole === 'internal'
+              ? 'Internal'
+              : 'Unknown'
+
     return {
       id: nodeId,
-      name: node.name,
-      role: node.role,
-      ip: node.ip,
-      location: node.geo_data?.country || 'Unknown',
+      name: node.name || DEFAULT_STRINGS.unknown,
+      role,
+      ip: node.ip || DEFAULT_STRINGS.unknown,
+      location: node.geo_data?.country || DEFAULT_STRINGS.unknown,
       status: deviceStatus,
-      cpu: Math.round(node.stats?.cpu_usage || 0),
-      ram: Math.round(node.stats?.ram_usage || 0),
-      lastAction: process?.type === 'install-agent' ? 'Installing agent' : (agentStatus === 'online' ? 'Agent running' : 'Waiting'),
-      lastActionTime: new Date(node.updated_at).toLocaleString(),
+      cpu: node.stats?.cpu_usage !== undefined ? Math.round(node.stats?.cpu_usage) : DEFAULT_STRINGS.unknown,
+      ram: node.stats?.ram_usage !== undefined ? Math.round(node.stats?.ram_usage) : DEFAULT_STRINGS.unknown,
+      lastAction:
+        process?.type === 'install-agent'
+          ? 'Installing agent'
+          : agentStatus === 'online'
+            ? 'Agent running'
+            : DEFAULT_STRINGS.unknown,
+      lastActionTime: node.updated_at ? new Date(node.updated_at).toLocaleString() : DEFAULT_STRINGS.unknown,
       agentStatus,
       currentProcess: process?.type || null,
       currentStepIndex: process?.stepIndex,
@@ -145,12 +166,12 @@ export default function DevicesPage() {
     let currentStep = 0
     const totalSteps = stepsTemplate.length
     
-    console.log(`[${type}] Starting process for device ${deviceId}, total steps: ${totalSteps}`)
+    logger.info('Device process started', { deviceId, type, totalSteps })
     setProcesses(prev => ({ ...prev, [deviceId]: { type, stepIndex: currentStep, agentStatus: initialAgentStatus } }))
 
     const interval = setInterval(() => {
       currentStep++
-      console.log(`[${type}] Device ${deviceId} - Step ${currentStep}/${totalSteps}`)
+      logger.debug('Device process step', { deviceId, type, currentStep, totalSteps })
       
       setProcesses(prev => {
         if (!prev[deviceId]) return prev
@@ -158,7 +179,7 @@ export default function DevicesPage() {
       })
 
       if (currentStep >= totalSteps - 1) {
-        console.log(`[${type}] Device ${deviceId} - Process complete`)
+        logger.info('Device process completed', { deviceId, type })
         setTimeout(() => {
           clearInterval(interval)
           delete intervalsRef.current[deviceId]
@@ -174,9 +195,9 @@ export default function DevicesPage() {
             delete next[deviceId]
             return next
           })
-        }, 1000)
+        }, PROCESS_TIMING_MS.completionDelay)
       }
-    }, 1500)
+    }, PROCESS_TIMING_MS.stepInterval)
 
     intervalsRef.current[deviceId] = interval
   }, [])
@@ -187,7 +208,7 @@ export default function DevicesPage() {
     cleanupMutation.mutate({ node_id: Number(deviceId), mode: 'soft' }, {
       onError: () => {
         // Even if backend fails, we still complete the UI process
-        console.log('Cleanup backend failed, but UI process continues')
+        logger.warn('Cleanup backend failed, UI process continues', { deviceId })
       }
     })
   }
@@ -244,7 +265,7 @@ export default function DevicesPage() {
               })
               refetchDevices()
               showToast('Agent installed successfully', 'success')
-            }, 1000)
+            }, PROCESS_TIMING_MS.completionDelay)
           } else if (task.status === 'failed') {
             clearInterval(pollInterval)
             delete intervalsRef.current[deviceId]
@@ -259,19 +280,19 @@ export default function DevicesPage() {
             setProcesses(prev => ({ ...prev, [deviceId]: { type: 'install-agent', stepIndex, agentStatus: 'installing' } }))
           }
           
-          if (pollCount > 120) {
+          if (pollCount > PROCESS_TIMING_MS.installTimeoutPolls) {
             clearInterval(pollInterval)
             delete intervalsRef.current[deviceId]
             showToast('Installation timeout', 'error')
           }
         } catch (err) {
-          console.error('Poll error:', err)
+          logger.error('Install agent polling error', { error: err })
         }
-      }, 2000)
+      }, POLLING_INTERVALS_MS.taskStatus)
       
       intervalsRef.current[deviceId] = pollInterval
     } catch (err: any) {
-      console.error('Install agent failed:', err)
+      logger.error('Install agent failed', { error: err })
       setAgentStatuses(prev => ({ ...prev, [deviceId]: 'error' }))
       setProcesses(prev => {
         const next = { ...prev }
@@ -314,7 +335,7 @@ export default function DevicesPage() {
           </select>
           <input
             type="text"
-            placeholder="Search by name, IP, tag..."
+            placeholder="Search devices"
             className="filter-input"
           />
         </div>

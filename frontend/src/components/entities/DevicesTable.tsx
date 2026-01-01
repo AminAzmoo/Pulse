@@ -97,14 +97,14 @@ export default function DevicesTable({
                       <div className="data-table-resources">
                         <div className="data-table-resource-row">
                           <span>CPU</span>
-                          <span className={device.cpu > 80 ? 'text-neon-b' : ''}>
-                            {device.cpu}%
+                          <span className={typeof device.cpu === 'number' && device.cpu > 80 ? 'text-neon-b' : ''}>
+                            {typeof device.cpu === 'number' ? `${device.cpu}%` : device.cpu}
                           </span>
                         </div>
                         <div className="data-table-resource-row">
                           <span>RAM</span>
-                          <span className={device.ram > 80 ? 'text-neon-b' : ''}>
-                            {device.ram}%
+                          <span className={typeof device.ram === 'number' && device.ram > 80 ? 'text-neon-b' : ''}>
+                            {typeof device.ram === 'number' ? `${device.ram}%` : device.ram}
                           </span>
                         </div>
                       </div>

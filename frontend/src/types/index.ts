@@ -7,8 +7,8 @@ export interface ProcessStep {
   state: ProcessStepState
 }
 
-export type DeviceRole = 'Entry' | 'Exit' | 'Hybrid' | 'Internal'
-export type DeviceStatus = 'Pending' | 'Installing' | 'Online' | 'Degraded' | 'Offline'
+export type DeviceRole = 'Entry' | 'Exit' | 'Hybrid' | 'Internal' | 'Unknown'
+export type DeviceStatus = 'Pending' | 'Installing' | 'Online' | 'Degraded' | 'Offline' | 'Unknown'
 
 export interface Device {
   id: string
@@ -17,16 +17,16 @@ export interface Device {
   ip: string
   location: string
   status: DeviceStatus
-  cpu: number
-  ram: number
+  cpu: number | string
+  ram: number | string
   lastAction?: string
   lastActionTime?: string
   processSteps?: ProcessStep[]
   flagCode?: string
 }
 
-export type TunnelType = 'Single-hop' | 'Multi-hop'
-export type TunnelStatus = 'Queued' | 'Planning' | 'Configuring' | 'Live' | 'Error'
+export type TunnelType = 'Single-hop' | 'Multi-hop' | 'Unknown'
+export type TunnelStatus = 'Queued' | 'Planning' | 'Configuring' | 'Live' | 'Error' | 'Unknown'
 
 export interface Tunnel {
   id: string
@@ -34,14 +34,14 @@ export interface Tunnel {
   path: string
   type: TunnelType
   status: TunnelStatus
-  latency: number
+  latency: number | string
   lastAction?: string
   lastActionTime?: string
   processSteps?: ProcessStep[]
 }
 
-export type ServiceProtocol = 'HTTP' | 'HTTPS' | 'TCP' | 'UDP'
-export type ServiceStatus = 'Queued' | 'Configuring' | 'Ready' | 'Error'
+export type ServiceProtocol = 'HTTP' | 'HTTPS' | 'TCP' | 'UDP' | 'Unknown'
+export type ServiceStatus = 'Queued' | 'Configuring' | 'Ready' | 'Error' | 'Unknown'
 
 export interface Service {
   id: string
@@ -49,7 +49,7 @@ export interface Service {
   protocol: ServiceProtocol
   entryNode: string
   exitNode: string
-  users: number
+  users: number | string
   traffic: string
   status: ServiceStatus
   lastAction?: string

@@ -18,7 +18,6 @@ export default function SettingsPage() {
         <IntegrationsCard />
         <SystemCard />
         
-        {/* Placeholder Security Card */}
         <div className="settings-security-card">
             <h3 className="settings-card-title">Security</h3>
             <p className="settings-card-subtitle">Security settings are managed by the organization administrator.</p>

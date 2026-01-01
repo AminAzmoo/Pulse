@@ -1,5 +1,6 @@
 import { useEffect, useRef, useMemo, useState } from 'react'
 import Globe from 'react-globe.gl'
+import { logger } from '../../lib/logger'
 
 interface Node {
   id: string
@@ -67,6 +68,9 @@ export default function NetworkGlobe({ nodes, links }: NetworkGlobeProps) {
     fetch('https://raw.githubusercontent.com/vasturiano/react-globe.gl/master/example/datasets/ne_110m_admin_0_countries.geojson')
       .then((res) => res.json())
       .then(setCountries)
+      .catch((error) => {
+        logger.warn('Failed to load globe geojson', { error })
+      })
   }, [])
 
   // Convert nodes to points data
@@ -157,7 +161,7 @@ export default function NetworkGlobe({ nodes, links }: NetworkGlobeProps) {
                 }
               }
             } catch (e) {
-              console.warn('Failed to apply globe material:', e);
+              logger.warn('Failed to apply globe material', { error: e })
             }
           }
         }}

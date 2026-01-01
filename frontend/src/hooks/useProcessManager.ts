@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { ProcessStep } from '../types'
+import { PROCESS_TIMING_MS } from '../constants'
 
 interface ActiveProcess {
   type: string
@@ -50,9 +51,9 @@ export function useProcessManager<T extends string>() {
             delete next[entityId]
             return next
           })
-        }, 1000)
+        }, PROCESS_TIMING_MS.completionDelay)
       }
-    }, 1500)
+    }, PROCESS_TIMING_MS.stepInterval)
 
     intervalsRef.current[entityId] = interval
   }, [])

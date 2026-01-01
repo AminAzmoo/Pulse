@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
 import { AlertTriangle, Copy } from 'lucide-react'
+import { useApi } from '../hooks/useApi'
+import { DEFAULT_STRINGS } from '../constants'
 
 interface InstallCommandModalProps {
   nodeId: string | null
@@ -18,6 +20,7 @@ export default function InstallCommandModal({ nodeId, isOpen, onClose }: Install
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
+  const api = useApi()
 
   const fetchCommand = () => {
     if (!nodeId) return
@@ -25,25 +28,12 @@ export default function InstallCommandModal({ nodeId, isOpen, onClose }: Install
     setLoading(true)
     setError(null)
     
-    fetch(`http://localhost:8081/api/v1/nodes/${nodeId}/command`, {
-      headers: {
-        'X-Admin-Token': 'change-me-admin'
-      }
-    })
-      .then(res => {
-        if (!res.ok) {
-          throw new Error(`HTTP ${res.status}: ${res.statusText}`)
-        }
-        return res.json()
+    api
+      .getInstallCommand(nodeId)
+      .then((data) => {
+        setCommand(data)
       })
-      .then(data => {
-        if (data.error) {
-          setError(data.error)
-        } else {
-          setCommand(data)
-        }
-      })
-      .catch(err => setError(err.message))
+      .catch((err: any) => setError(err?.message || DEFAULT_STRINGS.notAvailable))
       .finally(() => setLoading(false))
   }
 
@@ -121,14 +111,14 @@ export default function InstallCommandModal({ nodeId, isOpen, onClose }: Install
               {copied && <p className="text-xs text-green-500 mt-1">Copied to clipboard!</p>}
             </div>
             
-            <div className="grid grid-cols-2 gap-4 text-xs text-gray-400">
-              <div>
-                <span className="font-medium">API URL:</span> {command.api_url}
+              <div className="grid grid-cols-2 gap-4 text-xs text-gray-400">
+                <div>
+                  <span className="font-medium">API URL:</span> {command.api_url || DEFAULT_STRINGS.unknown}
+                </div>
+                <div>
+                  <span className="font-medium">Token:</span> {command.token || DEFAULT_STRINGS.unknown}
+                </div>
               </div>
-              <div>
-                <span className="font-medium">Token:</span> {command.token}
-              </div>
-            </div>
           </div>
         )}
 

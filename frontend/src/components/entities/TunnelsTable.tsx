@@ -1,4 +1,5 @@
 import { Tunnel, ProcessStep } from '../../types'
+import { DEFAULT_STRINGS } from '../../constants'
 import StatusBadge from '../common/StatusBadge'
 import CardShell from '../common/CardShell'
 
@@ -66,7 +67,11 @@ export default function TunnelsTable({
                     <StatusBadge status={tunnel.status} variant={statusVariant} />
                   </td>
                   <td className="px-4 py-3 text-white">
-                    {tunnel.latency > 0 ? `${tunnel.latency}ms` : '-'}
+                    {typeof tunnel.latency === 'number'
+                      ? tunnel.latency > 0
+                        ? `${tunnel.latency}ms`
+                        : DEFAULT_STRINGS.notAvailable
+                      : tunnel.latency}
                   </td>
                   <td className="px-4 py-3 text-xs">
                     {tunnel.lastAction ? (
