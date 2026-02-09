@@ -5,7 +5,7 @@ go 1.25.4
 require (
 	firebase.google.com/go v3.13.0+incompatible
 	github.com/glebarez/sqlite v1.11.0
-	github.com/gofiber/fiber/v2 v2.52.10
+	github.com/gofiber/fiber/v2 v2.52.11
 	github.com/google/uuid v1.6.0
 	github.com/shirou/gopsutil/v3 v3.24.5
 	github.com/stretchr/testify v1.11.1
